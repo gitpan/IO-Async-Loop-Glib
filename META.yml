@@ -1,0 +1,27 @@
+---
+name: IO-Async-Loop-Glib
+version: 0.12
+author:
+  - 'Paul Evans E<lt>leonerd@leonerd.org.ukE<gt>'
+abstract: a Loop using the C<Glib::MainLoop> object
+license: perl
+resources:
+  license: http://dev.perl.org/licenses/
+requires:
+  Glib: 0
+  IO::Async::Loop: 0.11
+build_requires:
+  Test::Exception: 0
+  Test::More: 0
+  Time::HiRes: 0
+provides:
+  IO::Async::Loop::Glib:
+    file: lib/IO/Async/Loop/Glib.pm
+    version: 0.12
+  IO::Async::Set::GMainLoop:
+    file: lib/IO/Async/Set/GMainLoop.pm
+    version: 0.10
+generated_by: Module::Build version 0.2808
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2

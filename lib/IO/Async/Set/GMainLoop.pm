@@ -20,9 +20,8 @@ C<IO::Async::Loop::Glib>
 
 =head1 SYNOPSIS
 
-This class should not be used in new code, and is provided for backward
-compatibility for older applications that still use it. It has been renamed
-to C<IO::Async::Loop::Glib>. Any application using this class should simply
+This class should not be used in new code. It has been renamed to
+C<IO::Async::Loop::Glib>. Any application using this class should simply
 change
 
  use IO::Async::Set::GMainLoop;
@@ -39,29 +38,7 @@ The behaviour has not otherwise changed.
 
 =cut
 
-=head1 CONSTRUCTOR
-
-=cut
-
-=head2 $set = IO::Async::Set::GMainLoop->new( %params )
-
-This function wraps a call to C<< IO::Async::Set::GMainLoop->new() >>.
-
-=cut
-
-sub new
-{
-   my $class = shift;
-   my ( %params ) = @_;
-
-   warnings::warnif 'deprecated',
-      "Use of IO::Async::Set::GMainLoop is deprecated; use IO::Async::Loop::Glib instead";
-
-   return $class->SUPER::new( %params );
-}
-
-# Keep perl happy; keep Britain tidy
-1;
+die "IO::Async::Set::GMainLoop is now deprecated. Please use IO::Async::Loop::GLib instead\n";
 
 __END__
 

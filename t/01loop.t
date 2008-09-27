@@ -121,7 +121,7 @@ is( $notifier->get_loop, undef, '$notifier->__memberof_loop is undef' );
 # Write-only
 
 my $write_only_notifier = IO::Async::Notifier->new(
-   write_handle => \*STDOUT,
+   write_handle => $S1,
    want_writeready => 1,
    on_write_ready => sub { $writeready = 1 },
 );

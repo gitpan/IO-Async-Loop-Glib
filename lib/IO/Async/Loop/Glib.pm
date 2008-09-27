@@ -7,7 +7,7 @@ package IO::Async::Loop::Glib;
 
 use strict;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use base qw( IO::Async::Loop );
 
@@ -75,7 +75,21 @@ sub new
 
    $self->{sourceid} = {};  # {$nkey} -> [ $readid, $writeid ]
 
+   $self->{timercallbacks} = {};  # {$timer_id} -> $code
+
    return $self;
+}
+
+sub __new_feature
+{
+   my $self = shift;
+   my ( $classname ) = @_;
+
+   # veto IO::Async::TimeQueue since we implement its methods locally
+   die __PACKAGE__." implements $classname internally" 
+      if grep { $_ eq $classname } qw( IO::Async::TimeQueue );
+
+   return $self->SUPER::__new_feature( $classname );
 }
 
 =head1 METHODS
@@ -113,7 +127,7 @@ sub __notifier_want_readready
    if( !defined $sourceids->[0] and $want_readready ) {
       $sourceids->[0] = Glib::IO->add_watch(
          $notifier->read_fileno,
-         ['in', 'hup'],
+         ['in', 'hup', 'err'],
          sub {
             $notifier->on_read_ready;
             # Must yield true value or else GLib will remove this IO source
@@ -141,7 +155,7 @@ sub __notifier_want_writeready
    if( !defined $sourceids->[1] and $want_writeready ) {
       $sourceids->[1] = Glib::IO->add_watch(
          $notifier->write_fileno,
-         ['out'],
+         ['out', 'hup', 'err'],
          sub {
             $notifier->on_write_ready;
             # Must yield true value or else GLib will remove this IO source
@@ -180,12 +194,19 @@ sub enqueue_timer
    my $code = delete $params{code};
    ref $code eq "CODE" or croak "Expected 'code' to be a CODE reference";
 
+   my $id;
+
    my $callback = sub {
       $code->();
+      delete $self->{timercallbacks}->{$id};
       return 0;
    };
 
-   return Glib::Timeout->add( $interval, $callback );
+   $id = Glib::Timeout->add( $interval, $callback );
+
+   $self->{timercallbacks}->{$id} = $code;
+
+   return $id;
 }
 
 # override
@@ -195,6 +216,24 @@ sub cancel_timer
    my ( $id ) = @_;
 
    Glib::Source->remove( $id );
+
+   delete $self->{timercallbacks}->{$id};
+
+   return;
+}
+
+# override
+sub requeue_timer
+{
+   my $self = shift;
+   my ( $id, %params ) = @_;
+
+   my $callback = $self->{timercallbacks}->{$id};
+   defined $callback or croak "No such enqueued timer";
+
+   $self->cancel_timer( $id );
+
+   return $self->enqueue_timer( %params, code => $callback );
 }
 
 =head2 $count = $loop->loop_once( $timeout )
@@ -218,13 +257,16 @@ sub loop_once
 
    my $timed_out = 0;
 
+   my $timerid;
    if( defined $timeout ) {
       my $interval = $timeout * 1000; # miliseconds
-      Glib::Timeout->add( $interval, sub { $timed_out = 1; return 0; } );
+      $timerid = Glib::Timeout->add( $interval, sub { $timed_out = 1; return 0; } );
    }
 
    my $context = Glib::MainContext->default;
    my $ret = $context->iteration( 1 );
+
+   Glib::Source->remove( $timerid ) unless $timed_out;
 
    return $ret and not $timed_out ? 1 : 0;
 }

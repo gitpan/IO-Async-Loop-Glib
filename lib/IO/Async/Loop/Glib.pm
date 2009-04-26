@@ -7,7 +7,7 @@ package IO::Async::Loop::Glib;
 
 use strict;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use base qw( IO::Async::Loop );
 
@@ -73,7 +73,7 @@ sub new
 
    my $self = $class->__new( %args );
 
-   $self->{sourceid} = {};  # {$nkey} -> [ $readid, $writeid ]
+   $self->{sourceid} = {};  # {$fd} -> [ $readid, $writeid ]
 
    $self->{timercallbacks} = {};  # {$timer_id} -> $code
 
@@ -100,73 +100,65 @@ the C<IO::Async::Loop> base class.
 =cut
 
 # override
-sub _notifier_removed
+sub watch_io
 {
    my $self = shift;
-   my ( $notifier ) = @_;
+   my %params = @_;
 
-   my $nkey = $self->_nkey( $notifier );
+   my $handle = $params{handle} or croak "Expected 'handle'";
+   my $fd = $handle->fileno;
 
-   my $sourceids = delete $self->{sourceid}->{$nkey};
+   my $sourceids = ( $self->{sourceid}->{$fd} ||= [] );
 
-   Glib::Source->remove( $sourceids->[0] ) if defined $sourceids->[0];
-   Glib::Source->remove( $sourceids->[1] ) if defined $sourceids->[1];
-}
+   if( my $on_read_ready = $params{on_read_ready} ) {
+      Glib::Source->remove( $sourceids->[0] ) if defined $sourceids->[0];
 
-# override
-# For ::Notifier to call
-sub __notifier_want_readready
-{
-   my $self = shift;
-   my ( $notifier, $want_readready ) = @_;
-
-   my $nkey = $self->_nkey( $notifier );
-
-   my $sourceids = ( $self->{sourceid}->{$nkey} ||= [] );
-
-   if( !defined $sourceids->[0] and $want_readready ) {
-      $sourceids->[0] = Glib::IO->add_watch(
-         $notifier->read_fileno,
+      $sourceids->[0] = Glib::IO->add_watch( $fd,
          ['in', 'hup', 'err'],
          sub {
-            $notifier->on_read_ready;
+            $on_read_ready->();
             # Must yield true value or else GLib will remove this IO source
             return 1;
          }
       );
    }
-   elsif( defined $sourceids->[0] and !$want_readready ) {
-      Glib::Source->remove( $sourceids->[0] );
-      undef $sourceids->[0];
+
+   if( my $on_write_ready = $params{on_write_ready} ) {
+      Glib::Source->remove( $sourceids->[1] ) if defined $sourceids->[1];
+
+      $sourceids->[1] = Glib::IO->add_watch( $fd,
+         ['out', 'hup', 'err'],
+         sub {
+            $on_write_ready->();
+            # Must yield true value or else GLib will remove this IO source
+            return 1;
+         }
+      );
    }
 }
 
 # override
-# For ::Notifier to call
-sub __notifier_want_writeready
+sub unwatch_io
 {
    my $self = shift;
-   my ( $notifier, $want_writeready ) = @_;
+   my %params = @_;
 
-   my $nkey = $self->_nkey( $notifier );
+   my $handle = $params{handle} or croak "Expected 'handle'";
+   my $fd = $handle->fileno;
 
-   my $sourceids = ( $self->{sourceid}->{$nkey} ||= [] );
+   my $sourceids = $self->{sourceid}->{$fd} or return;
 
-   if( !defined $sourceids->[1] and $want_writeready ) {
-      $sourceids->[1] = Glib::IO->add_watch(
-         $notifier->write_fileno,
-         ['out', 'hup', 'err'],
-         sub {
-            $notifier->on_write_ready;
-            # Must yield true value or else GLib will remove this IO source
-            return 1;
-         }
-      );
+   if( $params{on_read_ready} ) {
+      Glib::Source->remove( $sourceids->[0] ) if defined $sourceids->[0];
+      undef $sourceids->[0];
    }
-   elsif( defined $sourceids->[1] and !$want_writeready ) {
-      Glib::Source->remove( $sourceids->[1] );
+
+   if( $params{on_write_ready} ) {
+      Glib::Source->remove( $sourceids->[1] ) if defined $sourceids->[1];
       undef $sourceids->[1];
    }
+
+   delete $self->{sourceids}->{$fd} if not $sourceids->[0] and not $sourceids->[1];
 }
 
 # override

@@ -7,7 +7,7 @@ my $build = Module::Build->new
   (
    module_name => 'IO::Async::Loop::Glib',
    requires => {
-                 'IO::Async::Loop' => 0.11,
+                 'IO::Async::Loop' => 0.20,
                  'Glib' => 0,
                },
    build_requires => {

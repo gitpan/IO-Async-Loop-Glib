@@ -1,5 +1,8 @@
 Revision history for IO-Async-Loop-Glib
 
+0.14    CHANGES:
+         * Updated for IO-Async 0.20
+
 0.13:   CHANGES:
          * Implement interfaces required for IO::Async 0.17
          * Deprecated class IO::Async::Set::GMainLoop now dies instantly

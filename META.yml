@@ -1,6 +1,6 @@
 ---
 name: IO-Async-Loop-Glib
-version: 0.14
+version: 0.15
 author:
   - 'Paul Evans E<lt>leonerd@leonerd.org.ukE<gt>'
 abstract: a Loop using the C<Glib::MainLoop> object
@@ -17,8 +17,8 @@ build_requires:
 provides:
   IO::Async::Loop::Glib:
     file: lib/IO/Async/Loop/Glib.pm
-    version: 0.14
-generated_by: Module::Build version 0.3
+    version: 0.15
+generated_by: Module::Build version 0.33
 meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.2.html
-  version: 1.2
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4

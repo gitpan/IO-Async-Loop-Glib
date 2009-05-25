@@ -1,5 +1,11 @@
 Revision history for IO-Async-Loop-Glib
 
+0.15    CHANGES:
+         * Added 'use warnings'
+
+        BUGFIXES:
+         * Account for timing inaccuracies and race condition in timing tests
+
 0.14    CHANGES:
          * Updated for IO-Async 0.20
 

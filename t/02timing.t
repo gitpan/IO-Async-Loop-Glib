@@ -56,4 +56,8 @@ is( $done, 0, '$done still 0 so far' );
 
 $loop->loop_once( 5 );
 
+# GLib might return just a little early, such that the TimerQueue
+# doesn't think anything is ready yet. We need to handle that case.
+$loop->loop_once( 0.1 ) while !$done;
+
 is( $done, 2, '$done is 2 after requeued timer' );

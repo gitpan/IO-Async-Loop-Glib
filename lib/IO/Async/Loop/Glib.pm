@@ -8,7 +8,7 @@ package IO::Async::Loop::Glib;
 use strict;
 use warnings;
 
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 use base qw( IO::Async::Loop );
 
@@ -18,7 +18,7 @@ use Glib;
 
 =head1 NAME
 
-C<IO::Async::Loop::Glib> - a Loop using the C<Glib::MainLoop> object
+C<IO::Async::Loop::Glib> - use C<IO::Async> with F<Glib> or F<GTK>
 
 =head1 SYNOPSIS
 
@@ -304,4 +304,4 @@ L<Gtk2> - Perl interface to the 2.x series of the Gimp Toolkit library
 
 =head1 AUTHOR
 
-Paul Evans E<lt>leonerd@leonerd.org.ukE<gt>
+Paul Evans <leonerd@leonerd.org.uk>

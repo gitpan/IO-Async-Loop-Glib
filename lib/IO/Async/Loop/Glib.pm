@@ -8,7 +8,8 @@ package IO::Async::Loop::Glib;
 use strict;
 use warnings;
 
-our $VERSION = '0.16';
+our $VERSION = '0.17';
+use constant API_VERSION => '0.24';
 
 use base qw( IO::Async::Loop );
 
@@ -189,15 +190,17 @@ sub enqueue_timer
 
    my $id;
 
+   my $callbacks = $self->{timercallbacks};
+
    my $callback = sub {
       $code->();
-      delete $self->{timercallbacks}->{$id};
+      delete $callbacks->{$id};
       return 0;
    };
 
    $id = Glib::Timeout->add( $interval, $callback );
 
-   $self->{timercallbacks}->{$id} = $code;
+   $callbacks->{$id} = $code;
 
    return $id;
 }
@@ -227,6 +230,30 @@ sub requeue_timer
    $self->cancel_timer( $id );
 
    return $self->enqueue_timer( %params, code => $callback );
+}
+
+# override
+sub watch_idle
+{
+   my $self = shift;
+   my %params = @_;
+
+   my $code = delete $params{code};
+   ref $code eq "CODE" or croak "Expected 'code' to be a CODE reference";
+
+   my $when = delete $params{when} or croak "Expected 'when'";
+   $when eq "later" or croak "Expected 'when' to be 'later'";
+
+   return Glib::Idle->add( sub { $code->(); return 0 } );
+}
+
+# override
+sub unwatch_idle
+{
+   my $self = shift;
+   my ( $id ) = @_;
+
+   Glib::Source->remove( $id );
 }
 
 =head2 $count = $loop->loop_once( $timeout )

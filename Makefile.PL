@@ -8,7 +8,8 @@ WriteMakefile
                            'Glib' => 0,
                            'IO::Async::Loop' => '0.24',
                            'IO::Async::LoopTests' => '0.24',
-                           'Test::More' => 0
+                           'Test::More' => 0,
+                           'Time::HiRes' => 0
                          },
           'INSTALLDIRS' => 'site',
           'EXE_FILES' => [],

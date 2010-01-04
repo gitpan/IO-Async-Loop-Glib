@@ -1,5 +1,7 @@
 Build.PL
 Changes
+examples/hello.pl
+examples/timer.pl
 lib/IO/Async/Loop/Glib.pm
 LICENSE
 Makefile.PL

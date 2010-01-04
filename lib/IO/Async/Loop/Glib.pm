@@ -8,7 +8,7 @@ package IO::Async::Loop::Glib;
 use strict;
 use warnings;
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 use constant API_VERSION => '0.24';
 
 use base qw( IO::Async::Loop );
@@ -16,6 +16,8 @@ use base qw( IO::Async::Loop );
 use Carp;
 
 use Glib;
+
+use Time::HiRes qw( time );
 
 =head1 NAME
 
@@ -184,6 +186,7 @@ sub enqueue_timer
    }
 
    my $interval = $delay * 1000; # miliseconds
+   $interval = 0 if $interval < 0; # clamp or Glib gets upset
 
    my $code = delete $params{code};
    ref $code eq "CODE" or croak "Expected 'code' to be a CODE reference";
@@ -286,7 +289,9 @@ sub loop_once
    my $context = Glib::MainContext->default;
    my $ret = $context->iteration( 1 );
 
-   Glib::Source->remove( $timerid ) unless $timed_out;
+   if( defined $timerid ) {
+      Glib::Source->remove( $timerid ) unless $timed_out;
+   }
 
    return $ret and not $timed_out ? 1 : 0;
 }

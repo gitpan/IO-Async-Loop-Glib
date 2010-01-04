@@ -1,6 +1,6 @@
 ---
 name: IO-Async-Loop-Glib
-version: 0.17
+version: 0.18
 author:
   - 'Paul Evans <leonerd@leonerd.org.uk>'
 abstract: 'use C<IO::Async> with F<Glib> or F<GTK>'
@@ -13,12 +13,13 @@ build_requires:
 requires:
   Glib: 0
   IO::Async::Loop: 0.24
+  Time::HiRes: 0
 configure_requires:
   Module::Build: 0.35
 provides:
   IO::Async::Loop::Glib:
     file: lib/IO/Async/Loop/Glib.pm
-    version: 0.17
+    version: 0.18
 generated_by: Module::Build version 0.35
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html

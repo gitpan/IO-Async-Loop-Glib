@@ -1,5 +1,10 @@
 Revision history for IO-Async-Loop-Glib
 
+0.20    CHANGES:
+         * Optionally implement watch_io on_hangup (only on Linux)
+         * Fix use of Time::HiRes::time() - Loop has a ->time method directly
+         * Added some IO::Async + Glib sharing unit tests
+
 0.19    CHANGES:
          * Updated for IO::Async 0.33
 

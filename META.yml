@@ -5,9 +5,8 @@ author:
 build_requires:
   IO::Async::LoopTests: 0.24
   Test::More: 0
-configure_requires:
-  Module::Build: 0.36
-generated_by: 'Module::Build version 0.3607'
+dynamic_config: 1
+generated_by: 'Module::Build version 0.38, CPAN::Meta::Converter version 2.112150'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -16,11 +15,11 @@ name: IO-Async-Loop-Glib
 provides:
   IO::Async::Loop::Glib:
     file: lib/IO/Async/Loop/Glib.pm
-    version: 0.19
+    version: 0.20
 requires:
   Glib: 0
-  IO::Async::Loop: 0.24
+  IO::Async::Loop: 0.33
   Time::HiRes: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.19
+version: 0.20

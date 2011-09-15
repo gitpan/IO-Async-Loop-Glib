@@ -1,23 +1,26 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2007-2010 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2007-2011 -- leonerd@leonerd.org.uk
 
 package IO::Async::Loop::Glib;
 
 use strict;
 use warnings;
 
-our $VERSION = '0.19';
+our $VERSION = '0.20';
 use constant API_VERSION => '0.33';
 
+# Only Linux is known always to be able to report EOF conditions on
+# filehandles using POLLHUP
+use constant _CAN_ON_HANGUP => ( $^O eq "linux" );
+
 use base qw( IO::Async::Loop );
+IO::Async::Loop->VERSION( '0.33' );
 
 use Carp;
 
 use Glib;
-
-use Time::HiRes qw( time );
 
 =head1 NAME
 
@@ -77,7 +80,7 @@ sub new
 
    my $self = $class->__new( %args );
 
-   $self->{sourceid} = {};  # {$fd} -> [ $readid, $writeid ]
+   $self->{sourceid} = {};  # {$fd} -> [ $readid, $writeid, $hangupid ]
 
    $self->{timercallbacks} = {};  # {$timer_id} -> $code
 
@@ -103,7 +106,6 @@ the C<IO::Async::Loop> base class.
 
 =cut
 
-# override
 sub watch_io
 {
    my $self = shift;
@@ -111,6 +113,10 @@ sub watch_io
 
    my $handle = $params{handle} or croak "Expected 'handle'";
    my $fd = $handle->fileno;
+
+   # TODO: Investigate if the following can be made more efficient by
+   # installing just one source on all the masks, and detecting the particular
+   # event bits within the callback
 
    my $sourceids = ( $self->{sourceid}->{$fd} ||= [] );
 
@@ -139,9 +145,23 @@ sub watch_io
          }
       );
    }
+
+   if( my $on_hangup = $params{on_hangup} ) {
+      $self->_CAN_ON_HANGUP or croak "Cannot watch_io for 'on_hangup' in ".ref($self);
+
+      Glib::Source->remove( $sourceids->[2] ) if defined $sourceids->[2];
+
+      $sourceids->[2] = Glib::IO->add_watch( $fd,
+         ['hup'],
+         sub {
+            $on_hangup->();
+            # Must yield true value or else GLib will remove this IO source
+            return 1;
+         }
+      );
+   }
 }
 
-# override
 sub unwatch_io
 {
    my $self = shift;
@@ -162,10 +182,16 @@ sub unwatch_io
       undef $sourceids->[1];
    }
 
-   delete $self->{sourceids}->{$fd} if not $sourceids->[0] and not $sourceids->[1];
+   if( $params{on_hangup} ) {
+      $self->_CAN_ON_HANGUP or croak "Cannot watch_io for 'on_hangup' in ".ref($self);
+
+      Glib::Source->remove( $sourceids->[2] ) if defined $sourceids->[2];
+      undef $sourceids->[2];
+   }
+
+   delete $self->{sourceids}->{$fd} if not $sourceids->[0] and not $sourceids->[1] and not $sourceids->[2];
 }
 
-# override
 sub enqueue_timer
 {
    my $self = shift;
@@ -174,7 +200,7 @@ sub enqueue_timer
    # Just let GLib handle all these timer events
    my $delay;
    if( exists $params{time} ) {
-      my $now = exists $params{now} ? $params{now} : time();
+      my $now = exists $params{now} ? $params{now} : $self->time;
 
       $delay = delete($params{time}) - $now;
    }
@@ -208,7 +234,6 @@ sub enqueue_timer
    return $id;
 }
 
-# override
 sub cancel_timer
 {
    my $self = shift;
@@ -221,7 +246,6 @@ sub cancel_timer
    return;
 }
 
-# override
 sub requeue_timer
 {
    my $self = shift;
@@ -235,7 +259,6 @@ sub requeue_timer
    return $self->enqueue_timer( %params, code => $callback );
 }
 
-# override
 sub watch_idle
 {
    my $self = shift;
@@ -250,7 +273,6 @@ sub watch_idle
    return Glib::Idle->add( sub { $code->(); return 0 } );
 }
 
-# override
 sub unwatch_idle
 {
    my $self = shift;
@@ -270,7 +292,6 @@ of code sharing the Glib main context. Otherwise, it will return 0.
 
 =cut
 
-# override
 sub loop_once
 {
    my $self = shift;
@@ -296,7 +317,6 @@ sub loop_once
    return $ret and not $timed_out ? 1 : 0;
 }
 
-# override
 sub loop_forever
 {
    my $self = shift;
@@ -307,18 +327,12 @@ sub loop_forever
    undef $self->{mainloop};
 }
 
-# override
 sub loop_stop
 {
    my $self = shift;
    
    $self->{mainloop}->quit;
 }
-
-# Keep perl happy; keep Britain tidy
-1;
-
-__END__
 
 =head1 SEE ALSO
 
@@ -337,3 +351,7 @@ L<Gtk2> - Perl interface to the 2.x series of the Gimp Toolkit library
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
+
+=cut
+
+0x55AA;

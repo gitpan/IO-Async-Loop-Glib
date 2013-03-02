@@ -1,22 +1,18 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2007-2011 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2007-2013 -- leonerd@leonerd.org.uk
 
 package IO::Async::Loop::Glib;
 
 use strict;
 use warnings;
 
-our $VERSION = '0.20';
-use constant API_VERSION => '0.33';
-
-# Only Linux is known always to be able to report EOF conditions on
-# filehandles using POLLHUP
-use constant _CAN_ON_HANGUP => ( $^O eq "linux" );
+our $VERSION = '0.21';
+use constant API_VERSION => '0.49';
 
 use base qw( IO::Async::Loop );
-IO::Async::Loop->VERSION( '0.33' );
+IO::Async::Loop->VERSION( '0.49' );
 
 use Carp;
 
@@ -81,8 +77,6 @@ sub new
    my $self = $class->__new( %args );
 
    $self->{sourceid} = {};  # {$fd} -> [ $readid, $writeid, $hangupid ]
-
-   $self->{timercallbacks} = {};  # {$timer_id} -> $code
 
    return $self;
 }
@@ -192,23 +186,23 @@ sub unwatch_io
    delete $self->{sourceids}->{$fd} if not $sourceids->[0] and not $sourceids->[1] and not $sourceids->[2];
 }
 
-sub enqueue_timer
+sub watch_time
 {
    my $self = shift;
    my ( %params ) = @_;
 
    # Just let GLib handle all these timer events
    my $delay;
-   if( exists $params{time} ) {
+   if( exists $params{at} ) {
       my $now = exists $params{now} ? $params{now} : $self->time;
 
-      $delay = delete($params{time}) - $now;
+      $delay = delete($params{at}) - $now;
    }
-   elsif( exists $params{delay} ) {
-      $delay = delete $params{delay};
+   elsif( exists $params{after} ) {
+      $delay = delete $params{after};
    }
    else {
-      croak "Expected either 'time' or 'delay' keys";
+      croak "Expected either 'at' or 'after' keys";
    }
 
    my $interval = $delay * 1000; # miliseconds
@@ -219,44 +213,54 @@ sub enqueue_timer
 
    my $id;
 
-   my $callbacks = $self->{timercallbacks};
-
    my $callback = sub {
       $code->();
-      delete $callbacks->{$id};
       return 0;
    };
 
-   $id = Glib::Timeout->add( $interval, $callback );
-
-   $callbacks->{$id} = $code;
-
-   return $id;
+   return Glib::Timeout->add( $interval, $callback );
 }
 
-sub cancel_timer
+sub unwatch_time
 {
    my $self = shift;
    my ( $id ) = @_;
 
    Glib::Source->remove( $id );
 
-   delete $self->{timercallbacks}->{$id};
-
    return;
 }
 
-sub requeue_timer
+sub watch_child
 {
    my $self = shift;
-   my ( $id, %params ) = @_;
+   my ( $pid, $code ) = @_;
 
-   my $callback = $self->{timercallbacks}->{$id};
-   defined $callback or croak "No such enqueued timer";
+   if( $pid == 0 ) {
+      return $self->SUPER::watch_child( @_ );
+   }
 
-   $self->cancel_timer( $id );
+   my $childwatches = $self->{childwatches};
 
-   return $self->enqueue_timer( %params, code => $callback );
+   $childwatches->{$pid} = Glib::Child->watch_add( $pid,
+      sub {
+         $code->( $_[0], $_[1] );
+         delete $childwatches->{$pid};
+         return 0;
+      },
+   );
+}
+
+sub unwatch_child
+{
+   my $self = shift;
+   my ( $pid ) = @_;
+
+   if( $pid == 0 ) {
+      return $self->SUPER::unwatch_child( @_ );
+   }
+
+   Glib::Source->remove( delete $self->{childwatches}{$pid} );
 }
 
 sub watch_idle
@@ -281,7 +285,7 @@ sub unwatch_idle
    Glib::Source->remove( $id );
 }
 
-=head2 $count = $loop->loop_once( $timeout )
+=head2 $loop->loop_once( $timeout )
 
 This method calls the C<iteration()> method on the underlying 
 C<Glib::MainContext>. If a timeout value is supplied, then a Glib timeout
@@ -308,13 +312,11 @@ sub loop_once
    }
 
    my $context = Glib::MainContext->default;
-   my $ret = $context->iteration( 1 );
+   1 until $context->iteration( 1 );
 
    if( defined $timerid ) {
       Glib::Source->remove( $timerid ) unless $timed_out;
    }
-
-   return $ret and not $timed_out ? 1 : 0;
 }
 
 sub loop_forever

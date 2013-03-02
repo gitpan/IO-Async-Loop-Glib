@@ -1,5 +1,11 @@
 Revision history for IO-Async-Loop-Glib
 
+0.21    CHANGES:
+         * Implement the iO::Async 0.49 Loop API - watch_time/unwatch_time
+         * Implement watch_child on specific PIDs using native GLib child
+           watches
+         * Bugfixes for pipe HUP and $context->iteration early returns
+
 0.20    CHANGES:
          * Optionally implement watch_io on_hangup (only on Linux)
          * Fix use of Time::HiRes::time() - Loop has a ->time method directly

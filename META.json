@@ -4,7 +4,7 @@
       "Paul Evans <leonerd@leonerd.org.uk>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.38, CPAN::Meta::Converter version 2.112150",
+   "generated_by" : "Module::Build version 0.4001, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
    ],
@@ -17,21 +17,21 @@
       "build" : {
          "requires" : {
             "IO::Async::LoopTests" : "0.24",
-            "Test::More" : 0
+            "Test::More" : "0.88"
          }
       },
       "runtime" : {
          "requires" : {
-            "Glib" : 0,
-            "IO::Async::Loop" : "0.33",
-            "Time::HiRes" : 0
+            "Glib" : "0",
+            "IO::Async::Loop" : "0.49",
+            "Time::HiRes" : "0"
          }
       }
    },
    "provides" : {
       "IO::Async::Loop::Glib" : {
          "file" : "lib/IO/Async/Loop/Glib.pm",
-         "version" : "0.20"
+         "version" : "0.21"
       }
    },
    "release_status" : "stable",
@@ -40,5 +40,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.20"
+   "version" : "0.21"
 }

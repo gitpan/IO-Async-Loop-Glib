@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More;
 
 use Glib;
 use IO::Async::Loop::Glib;
@@ -52,3 +52,5 @@ $loop->loop_once until defined $glib_line and defined $ioasync_line;
 
 is( $glib_line,    "Hello world!", 'Glib read' );
 is( $ioasync_line, "Hello world!", 'IO::Async read' );
+
+done_testing;

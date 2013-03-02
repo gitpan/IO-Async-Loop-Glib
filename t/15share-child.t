@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More;
 
 use Glib;
 use IO::Async::Loop::Glib;
@@ -37,3 +37,5 @@ $loop->loop_once until defined $glib_status and defined $ioasync_status;
 
 is( $glib_status, 5 << 8, 'Glib child' );
 is( $ioasync_status,  5 << 8, 'IO::Async child' );
+
+done_testing;

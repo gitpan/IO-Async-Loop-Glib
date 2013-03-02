@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More;
 
 use Glib;
 use IO::Async::Loop::Glib;
@@ -28,3 +28,5 @@ $loop->loop_once until defined $glib_timer and defined $ioasync_timer;
 
 is( $glib_timer,    1, 'Glib timer' );
 is( $ioasync_timer, 1, 'IO::Async timer' );
+
+done_testing;
